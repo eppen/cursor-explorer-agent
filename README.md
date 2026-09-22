@@ -2,6 +2,8 @@
 
 在文件夹上（或文件夹空白处）右键，输入任务说明后，调用本机 `agent` CLI 对该目录执行。
 
+[English](README.en.md)
+
 ## 前提
 
 1. 已安装 [Cursor CLI](https://cursor.com/docs/cli/headless)（本机常见路径：`%LOCALAPPDATA%\cursor-agent\agent.cmd`）
@@ -55,3 +57,7 @@ cd <本工具所在目录>
 > 列出本目录主要文件并简要总结用途（不要修改任何文件）
 
 应弹出新控制台并看到 agent 输出。若提示未找到 agent 或未认证，按上方「前提」检查。
+
+## 许可证
+
+本项目以 [GNU General Public License v2.0](LICENSE)（GPLv2）发布。
