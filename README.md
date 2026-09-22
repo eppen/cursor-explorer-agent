@@ -18,7 +18,7 @@ $env:CURSOR_API_KEY = 'your_api_key'
 在 PowerShell 中执行：
 
 ```powershell
-cd C:\Users\dllhl\tools\cursor-explorer-agent
+cd <本工具所在目录>
 .\Install-ContextMenu.ps1
 ```
 
@@ -36,7 +36,7 @@ Win11 若只看到精简右键，点「显示更多选项」即可看到本菜�
 ## 卸载
 
 ```powershell
-cd C:\Users\dllhl\tools\cursor-explorer-agent
+cd <本工具所在目录>
 .\Uninstall-ContextMenu.ps1
 ```
 
