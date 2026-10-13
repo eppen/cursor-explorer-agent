@@ -48,7 +48,7 @@ function Show-TaskDialog {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = (S 0x7528) + ' Cursor Agent ' + (S 0x6267,0x884C)
-    $form.Size = New-Object System.Drawing.Size(520, 320)
+    $form.Size = New-Object System.Drawing.Size(520, 360)
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
@@ -79,25 +79,38 @@ function Show-TaskDialog {
     $txtPrompt.ScrollBars = 'Vertical'
     $txtPrompt.AcceptsReturn = $true
 
+    # 单次执行 / 多轮对话（默认多轮；两种模式首轮提示词均必填）
+    $radOnce = New-Object System.Windows.Forms.RadioButton
+    $radOnce.Text = (S 0x5355,0x6B21,0x6267,0x884C) + ' (-p)'
+    $radOnce.Location = New-Object System.Drawing.Point(12, 238)
+    $radOnce.AutoSize = $true
+
+    $radMulti = New-Object System.Windows.Forms.RadioButton
+    $radMulti.Text = (S 0x591A,0x8F6E,0x5BF9,0x8BDD) + ' (' + (S 0x4EA4,0x4E92,0x5F0F) + ')'
+    $radMulti.Location = New-Object System.Drawing.Point(160, 238)
+    $radMulti.AutoSize = $true
+    $radMulti.Checked = $true
+
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = (S 0x786E,0x5B9A)
-    $btnOk.Location = New-Object System.Drawing.Point(316, 242)
+    $btnOk.Location = New-Object System.Drawing.Point(316, 282)
     $btnOk.Size = New-Object System.Drawing.Size(85, 28)
     $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
 
     $btnCancel = New-Object System.Windows.Forms.Button
     $btnCancel.Text = (S 0x53D6,0x6D88)
-    $btnCancel.Location = New-Object System.Drawing.Point(407, 242)
+    $btnCancel.Location = New-Object System.Drawing.Point(407, 282)
     $btnCancel.Size = New-Object System.Drawing.Size(85, 28)
     $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
 
-    $form.Controls.AddRange(@($lblPath, $txtPath, $lblPrompt, $txtPrompt, $btnOk, $btnCancel))
+    $form.Controls.AddRange(@($lblPath, $txtPath, $lblPrompt, $txtPrompt, $radOnce, $radMulti, $btnOk, $btnCancel))
     $form.AcceptButton = $btnOk
     $form.CancelButton = $btnCancel
     $form.Add_Shown({ $txtPrompt.Focus() })
 
     $result = $form.ShowDialog()
     $prompt = $txtPrompt.Text
+    $interactive = $radMulti.Checked
     $form.Dispose()
 
     if ($result -ne [System.Windows.Forms.DialogResult]::OK) {
@@ -108,19 +121,32 @@ function Show-TaskDialog {
         return $null
     }
 
-    return $prompt.Trim()
+    return [pscustomobject]@{
+        Prompt      = $prompt.Trim()
+        Interactive = $interactive
+    }
 }
 
 try {
     $folderPath = Resolve-FolderPath -RawPath $Path
     $agentCmd = Find-AgentCommand
-    $userPrompt = Show-TaskDialog -FolderPath $folderPath
+    $task = Show-TaskDialog -FolderPath $folderPath
 
-    if ($null -eq $userPrompt) {
+    if ($null -eq $task) {
         exit 0
     }
 
-    $fullPrompt = $userPrompt + "`n`n" + (S 0x5DE5,0x4F5C,0x533A,0x7EDD,0x5BF9,0x8DEF,0x5F84,0x003A,0x0020) + $folderPath
+    $fullPrompt = $task.Prompt + "`n`n" + (S 0x5DE5,0x4F5C,0x533A,0x7EDD,0x5BF9,0x8DEF,0x5F84,0x003A,0x0020) + $folderPath
+
+    # -p/--trust 仅用于单次 print；多轮交互式会话不能带 --trust
+    if ($task.Interactive) {
+        $agentArgsLine = '& $agent --force --workspace (Get-Location).Path $prompt'
+        $modeHint = (S 0x591A,0x8F6E,0x5BF9,0x8BDD) + ' (interactive)'
+    }
+    else {
+        $agentArgsLine = '& $agent -p --force --trust --workspace (Get-Location).Path $prompt'
+        $modeHint = (S 0x5355,0x6B21,0x6267,0x884C) + ' (-p)'
+    }
 
     $runner = Join-Path $env:TEMP ("cursor-agent-run-" + [guid]::NewGuid().ToString('N') + ".ps1")
     $runnerBody = @(
@@ -132,8 +158,9 @@ try {
         '''@'
         'Write-Host ("Workspace: " + (Get-Location).Path)'
         'Write-Host ("Agent: " + $agent)'
+        ('Write-Host ("Mode: " + ' + "'" + $modeHint.Replace("'", "''") + "'" + ')')
         'Write-Host ""'
-        '& $agent -p --force --trust --workspace (Get-Location).Path $prompt'
+        $agentArgsLine
         '$code = $LASTEXITCODE'
         'Write-Host ""'
         'Write-Host ("Exit code: " + $code)'

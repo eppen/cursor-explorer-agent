@@ -30,8 +30,10 @@ No admin rights required (writes to the current user’s HKCU).
 
 1. In File Explorer, right-click a **folder**, or right-click **empty space** inside a folder
 2. Choose **用 Cursor Agent 执行...**
-3. Enter the task description and confirm
-4. A new console runs `agent -p --force --trust --workspace <path>`; press Enter when finished to close
+3. Enter a required task description, pick a mode, then confirm:
+   - **Multi-turn** (default): `agent --force --workspace <path> <first prompt>` — keep chatting in the console after the first turn
+   - **One-shot**: `agent -p --force --trust --workspace <path> <prompt>` — exits when done
+4. Press Enter to close the console when finished
 
 On Windows 11, open **Show more options** if the item is hidden in the compact menu.
 
